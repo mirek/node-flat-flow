@@ -1,0 +1,37 @@
+{
+  "name": "flat-flow",
+  "version": "0.0.0",
+  "description": "Async flow with conditional branching that looks good.",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "grunt test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mirek/node-flat-flow.git"
+  },
+  "keywords": [
+    "async",
+    "flow",
+    "conditional",
+    "branching",
+    "series"
+  ],
+  "author": "Mirek Rusin http://github.com/mirek",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mirek/node-flat-flow/issues"
+  },
+  "homepage": "https://github.com/mirek/node-flat-flow",
+  "dependencies": {
+    "async": "^0.9.0"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.7.1",
+    "grunt": "^0.4.5",
+    "grunt-cli": "^0.1.13",
+    "grunt-contrib-coffee": "^0.10.1",
+    "grunt-mocha-test": "^0.11.0",
+    "mocha": "^1.20.1"
+  }
+}
