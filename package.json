@@ -1,6 +1,6 @@
 {
   "name": "flat-flow",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Async flow with conditional branching that looks good.",
   "main": "lib/index.js",
   "scripts": {
