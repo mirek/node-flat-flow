@@ -116,6 +116,36 @@ describe 'flow', ->
       assert.deepEqual Object.keys(@).sort(), [ 'bar', 'foo' ]
       done null
 
+  it 'should pick @ reference and store it in @this', (done) ->
+
+    class K
+      @a: 123
+      @b: 456
+      @x: (done) ->
+        flow { this: @ }, [
+          (done) ->
+            done null, { r: @this.a + @this.b }
+        ], ->
+          done null, @r
+
+    K.x (err, r) ->
+      assert.equal 579, r
+      done null
+
+  it 'should add kv', (done) ->
+    flow [
+      -> foo: 'abc'
+      -> false
+      -> bar: 'zzz'
+      -> true
+      -> baz: 'def'
+    ], (err) ->
+      assert.ifError err
+      assert.equal @foo, 'abc'
+      assert.equal @bar, undefined
+      assert.equal @baz, 'def'
+      done err
+
   # it 'should compose flows', (done) ->
   #
   #   flows:

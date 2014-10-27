@@ -1,23 +1,31 @@
+
 async = require 'async'
 
+# Merge locals.
+merge = (a = {}, b = {}) ->
+  for k, v of b
+    if b.hasOwnProperty k
+      a[ k ] = v
+  a
+
+# Async control flow.
+#
+# @param [Object]
+# @param []
 flow = (self = {}, functions, done) ->
   [ self, functions, done ] = [ {}, self, functions ] if Array.isArray self
 
-  # Merge locals
-  mergeLocals = (done) ->
-    (err, locals) ->
-      for k, v of (locals or {})
-        self[k] = v
-      done err
+  # Clone, hold this reference.
+  self = merge {}, self
 
-  mapArg = (f, r) ->
+  map = (f, r) ->
     switch
 
       # TODO: push/pop state
       when Array.isArray f
         # r.push (done) -> self.pushState(...)
         f.forEach (g) ->
-          mapArg g, r
+          map g, r
         # r.pop (done) -> self.popState(...)
 
       when typeof f is 'function'
@@ -25,13 +33,34 @@ flow = (self = {}, functions, done) ->
 
           when 0
             r.push (done) ->
-              self.__flowSkip = not f.bind(self)()
+
+              # self.__flowSkip = not f.bind(self)()
+
+              result = f.bind(self)()
+
+              switch
+                when result in [ true, false ]
+                  self.__flowSkip = not result
+
+                when (typeof result is 'object') and (not Array.isArray(result))
+                  unless self.__flowSkip
+                    merge self, result
+
+                else
+                  throw new Error "Arity 0 flow function has to return {} or true/false."
+
+              # TODO: process.nextTick?
               done null
 
           when 1
             r.push (done) ->
               unless self.__flowSkip
-                f.bind(self) mergeLocals(done)
+                f.bind(self) (err, result) ->
+
+                  # NOTE: We're merging (potentially replacing result) even
+                  #       in case of errors.
+                  merge self, result
+                  done err
               else
                 done null
 
@@ -39,7 +68,7 @@ flow = (self = {}, functions, done) ->
             throw new Error "Wrong arity (#{f.length}) in flow for: #{f}"
 
   mapped = []
-  mapArg functions, mapped
+  map functions, mapped
 
   async.series mapped, (err) ->
     done.bind(self) err, self
