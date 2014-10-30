@@ -5,7 +5,7 @@ async = require 'async'
 
 describe 'flow', ->
 
-  it 'should invoke stuff', ->
+  it 'should invoke stuff', (done) ->
 
     flow [
 
@@ -44,6 +44,7 @@ describe 'flow', ->
       assert.equal @c, undefined
       assert.equal @d, undefined
       assert.equal @e, 3
+      done err
 
   it 'should perform series of tasks', (done) ->
     [ a, b, c ] = [ false, false, false ]
@@ -116,15 +117,15 @@ describe 'flow', ->
       assert.deepEqual Object.keys(@).sort(), [ 'bar', 'foo' ]
       done null
 
-  it 'should pick @ reference and store it in @this', (done) ->
+  it 'should pick @ reference and store it in @$', (done) ->
 
     class K
       @a: 123
       @b: 456
       @x: (done) ->
-        flow { this: @ }, [
+        flow { $: @ }, [
           (done) ->
-            done null, { r: @this.a + @this.b }
+            done null, { r: @$.a + @$.b }
         ], ->
           done null, @r
 
@@ -145,6 +146,77 @@ describe 'flow', ->
       assert.equal @bar, undefined
       assert.equal @baz, 'def'
       done err
+
+  it 'should return flow object without running it', (done) ->
+    i = 0
+    adder = [
+      -> x: i += 1
+    ]
+    assert.equal i, 0
+    flow adder, (err) ->
+      assert.ifError err
+      assert.equal i, 1
+      flow [
+        adder
+        -> false
+        -> x: i += 1
+        adder
+      ], (err) ->
+        assert.ifError err
+        assert.equal @x, 2
+        done err
+
+  it 'should return flow object without running it', (done) ->
+    shift = [
+      -> a: @a << 1
+    ]
+
+    ashift = [
+      (done) ->
+        process.nextTick =>
+          a = @a << 1
+          done null, { a }
+    ]
+
+    flow { a: 1 }, [
+      -> assert.equal(@a, 1); true
+      shift
+      -> assert.equal(@a, 2); true
+      ashift
+      -> assert.equal(@a, 4); true
+    ], done
+
+  # it 'should nest flows', (done) ->
+  #
+  #   flows =
+  #     yep: [
+  #       (done) ->
+  #         process.nextTick ->
+  #           done null, { msg: 'yep' }
+  #     ]
+  #     nope: [
+  #       (done) ->
+  #         process.nextTick ->
+  #           done null, { msg: 'nope' }
+  #     ]
+  #     isfoo: [
+  #       ->
+  #         if @foo is 1
+  #           flows.yep
+  #         else
+  #           flows.nope
+  #     ]
+  #
+  #   flow [
+  #     (done) ->
+  #       flow { foo: 1 }, flows.isfoo, (err) -> done null, { first: @msg }
+  #     (done) ->
+  #       flow { foo: 2 }, flows.isfoo, (err) -> done null, { second: @msg }
+  #   ], (err) ->
+  #     assert.ifError err
+  #     assert.equal @first, 'yep'
+  #     assert.equal @second, 'nope'
+  #     done err
 
   # it 'should compose flows', (done) ->
   #

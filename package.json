@@ -24,7 +24,8 @@
   },
   "homepage": "https://github.com/mirek/node-flat-flow",
   "dependencies": {
-    "async": "^0.9.0"
+    "async": "^0.9.0",
+    "lshift": "^1.1.0"
   },
   "devDependencies": {
     "coffee-script": "^1.8.0",
