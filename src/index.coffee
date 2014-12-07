@@ -65,11 +65,11 @@ flow = (locals, functions, done) ->
                   else
                     throw new Error "Arity 0 flow function has to return {} or true/false."
 
-                # process.nextTick ->
+                # setImmediate ->
                 done null
 
               catch ex
-                # process.nextTick ->
+                # setImmediate ->
                 done ex
 
           when 1

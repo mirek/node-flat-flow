@@ -173,7 +173,7 @@ describe 'flow', ->
 
     ashift = [
       (done) ->
-        process.nextTick =>
+        setImmediate =>
           a = @a << 1
           done null, { a }
     ]
@@ -191,12 +191,12 @@ describe 'flow', ->
   #   flows =
   #     yep: [
   #       (done) ->
-  #         process.nextTick ->
+  #         setImmediate ->
   #           done null, { msg: 'yep' }
   #     ]
   #     nope: [
   #       (done) ->
-  #         process.nextTick ->
+  #         setImmediate ->
   #           done null, { msg: 'nope' }
   #     ]
   #     isfoo: [
