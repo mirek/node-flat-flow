@@ -23,10 +23,7 @@
     "url": "https://github.com/mirek/node-flat-flow/issues"
   },
   "homepage": "https://github.com/mirek/node-flat-flow",
-  "dependencies": {
-    "async": "^0.9.0",
-    "lshift": "^1.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "coffee-script": "^1.8.0",
     "grunt": "^0.4.5",

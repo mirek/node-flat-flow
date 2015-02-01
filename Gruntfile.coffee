@@ -19,6 +19,7 @@ module.exports = (grunt) ->
     mochaTest:
       test:
         options:
+          bail: true
           reporter: 'spec'
           require: [
             'coffee-script'

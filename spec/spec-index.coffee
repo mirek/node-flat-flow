@@ -1,6 +1,5 @@
 
 assert = require 'assert'
-async = require 'async'
 { flow } = require '../src'
 
 describe 'flow', ->
@@ -51,17 +50,17 @@ describe 'flow', ->
     flow [
 
       (done) ->
-        async.nextTick ->
+        process.nextTick ->
           a = 1
           done null
 
       (done) ->
-        async.nextTick ->
+        process.nextTick ->
           b = 2
           done null
 
       (done) ->
-        async.nextTick ->
+        process.nextTick ->
           c = 3
           done null
 
@@ -107,7 +106,7 @@ describe 'flow', ->
     flow { foo: 3 }, [
 
       (done) ->
-        async.nextTick ->
+        process.nextTick ->
           done null, { bar: 5 }
 
     ], (err) ->
@@ -147,44 +146,87 @@ describe 'flow', ->
       assert.equal @baz, 'def'
       done err
 
-  it 'should return flow object without running it', (done) ->
-    i = 0
-    adder = [
-      -> x: i += 1
-    ]
-    assert.equal i, 0
-    flow adder, (err) ->
-      assert.ifError err
-      assert.equal i, 1
-      flow [
-        adder
-        -> false
-        -> x: i += 1
-        adder
-      ], (err) ->
-        assert.ifError err
-        assert.equal @x, 2
-        done err
+  it 'should work with readme example', (done) ->
 
-  it 'should return flow object without running it', (done) ->
-    shift = [
-      -> a: @a << 1
-    ]
+    # This is how to use me.
+    flow [
 
-    ashift = [
+      # 1-arity functions will be called and result merged.
       (done) ->
-        setImmediate =>
-          a = @a << 1
-          done null, { a }
-    ]
+        done null, { a: 1 }
 
-    flow { a: 1 }, [
-      -> assert.equal(@a, 1); true
-      shift
-      -> assert.equal(@a, 2); true
-      ashift
-      -> assert.equal(@a, 4); true
-    ], done
+      # If you pass an error as first arg, the whole flow is finished, see the bottom.
+      (done) ->
+        done null, { b: 2 }
+
+      # 0-arity function returning booleans manage flow, false will skipp all calls until true is found in 0-arity.
+      -> false
+
+      # Will be skipped.
+      (done) ->
+        done null, { c: 3 }
+
+      # Resume flow. You always have access to locals set before.
+      -> true or @a is 1
+
+      # Will be called because we've resumed above.
+      (done) ->
+        done null, { e: @a + @b }
+
+      # 2-arity functions allows you to refer to locals if you don't want to bind all nested functions.
+      (done, { e }) ->
+        process.nextTick ->
+          process.nextTick ->
+            done null, { f: e + 1 }
+
+    ], (err) ->
+      assert.ifError err
+      assert.equal @a, 1
+      assert.equal @b, 2
+      assert.equal @c, undefined
+      assert.equal @d, undefined
+      assert.equal @e, 3
+      assert.equal @f, 4
+      done err
+
+  # # it 'should return flow object without running it', (done) ->
+  # #   i = 0
+  # #   adder = [
+  # #     -> x: i += 1
+  # #   ]
+  # #   assert.equal i, 0
+  # #   flow adder, (err) ->
+  # #     assert.ifError err
+  # #     assert.equal i, 1
+  # #     flow [
+  # #       adder
+  # #       -> false
+  # #       -> x: i += 1
+  # #       adder
+  # #     ], (err) ->
+  # #       assert.ifError err
+  # #       assert.equal @x, 2
+  # #       done err
+  #
+  # it 'should return flow object without running it', (done) ->
+  #   shift = [
+  #     -> a: @a << 1
+  #   ]
+  #
+  #   ashift = [
+  #     (done) ->
+  #       setImmediate =>
+  #         a = @a << 1
+  #         done null, { a }
+  #   ]
+  #
+  #   flow { a: 1 }, [
+  #     -> assert.equal(@a, 1); true
+  #     shift
+  #     -> assert.equal(@a, 2); true
+  #     ashift
+  #     -> assert.equal(@a, 4); true
+  #   ], done
 
   # it 'should nest flows', (done) ->
   #

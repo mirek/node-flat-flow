@@ -1,98 +1,77 @@
 
-async = require 'async'
-{ lshift } = require 'lshift'
-
-# Merge locals.
+# Merge locals (or shallow clone).
 merge = (a = {}, b = {}) ->
-  for k, v of b
-    if b.hasOwnProperty k
-      a[ k ] = v
+  for own k, v of b
+    a[ k ] = v
   a
 
-# Async control flow.
+# Flow.
 #
-# @param [Object] locals
-# @param [Array<Function>] functions
+# @param [Object] locals?
+# @param [Array<Function>] fs
 # @param [Function] done
 # @return [Flow]
-flow = (locals, functions, done) ->
+flow = (locals, fs, done) ->
+  [ locals, fs, done ] = [ {}, locals, fs ] if typeof fs is 'function'
 
-  [ locals, functions, done ] = lshift [
-    [ locals, { $and: [ 'object', $not: 'array' ] }, {} ]
-    [ functions, 'array', [] ]
-    [ done, 'function', -> ]
-  ]
+  # Keep track of flow state.
+  skip = false
 
-  # Clone, hold this reference.
-  locals = merge {}, locals
+  # Index of current function to be called.
+  i = 0
 
-  # console.log { locals, functions, done }
+  # Once we reach function count we'll return.
+  n = fs.length
 
-  map = (f, r) ->
-    switch
+  err = null
 
-      # TODO: push/pop state
-      when Array.isArray f
-        # r.push (done) -> locals.pushState(...)
-        f.forEach (g) ->
-          map g, r
-        # r.pop (done) -> locals.popState(...)
+  # Process result.
+  res = (r) ->
+    switch typeof r
+      when 'boolean'
+        skip = not r
+      when 'object'
+        merge locals, r unless skip
 
-      when typeof f is 'function'
-        switch f.length
+  # Recursively call all functions and finish with final callback.
+  next = ->
+    if not err? and i < n
+      f = fs[i++]
+      switch f.length # Based on the function arity...
 
-          # Arity 0 - non async
-          when 0
-            r.push (done) ->
+        # Not an async call, can be control (true/false) or vars merge (object).
+        # We also ignore skip state, otherwise there would be no way of changing this state.
+        when 0
+          try
+            res f.bind(locals)()
+          catch ex
+            err = ex
+          next()
 
-              # locals.__flowSkip = not f.bind(locals)()
-              try
-                result = f.bind(locals)()
-
-                switch
-
-                  # Boolean result means flow on/off
-                  when result in [ true, false ]
-                    locals.__flowSkip = not result
-
-                  # TODO: Nested flow for array
-
-                  # Set values, unless we're off (waiting for on flag <<true result>>)
-                  when typeof result is 'object'
-                    unless locals.__flowSkip
-                      merge locals, result
-
-                  else
-                    throw new Error "Arity 0 flow function has to return {} or true/false."
-
-                # setImmediate ->
-                done null
-
-              catch ex
-                # setImmediate ->
-                done ex
-
-          when 1
-            r.push (done) ->
-              unless locals.__flowSkip
-                f.bind(locals) (err, result) ->
-
-                  # NOTE: We're merging (potentially replacing result) even
-                  #       in case of errors.
-                  merge locals, result
-                  done err
-              else
-                done null
-
+        # Async call.
+        when 1, 2
+          unless skip
+            once = false
+            try
+              f.bind(locals) (err_, r) ->
+                unless err_?
+                  res r
+                else
+                  err = err_
+                (once = true; next()) unless once
+              , locals
+            catch ex
+              err = ex
+              (once = true; next()) unless once
           else
-            throw new Error "Wrong arity (#{f.length}) in flow for: #{f}"
+            next()
+    else
 
-  mapped = []
+      # We're done with all calls or there was an error, return via callback.
+      done.bind(locals) err, locals
 
-  map functions, mapped
-
-  async.series mapped, (err) ->
-    done.bind(locals) err, locals
+  # Run.
+  next null
 
 module.exports = {
   flow
