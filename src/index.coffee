@@ -27,11 +27,12 @@ flow = (locals, fs, done) ->
 
   # Process result.
   res = (r) ->
-    switch typeof r
-      when 'boolean'
-        skip = not r
-      when 'object'
-        merge locals, r unless skip
+    if r isnt null
+      switch typeof r
+        when 'boolean'
+          skip = not r
+        when 'object'
+          merge locals, r unless skip
 
   # Recursively call all functions and finish with final callback.
   next = ->
@@ -54,10 +55,8 @@ flow = (locals, fs, done) ->
             once = false
             try
               f.bind(locals) (err_, r) ->
-                unless err_?
-                  res r
-                else
-                  err = err_
+                res r
+                err = err_
                 (once = true; next()) unless once
               , locals
             catch ex
